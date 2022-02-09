@@ -1,30 +1,35 @@
 package com.sample.basicscodelab.ui
 
 import android.app.Application
+import android.util.Log
 import androidx.lifecycle.AndroidViewModel
-import androidx.lifecycle.LiveData
-import com.android.billingclient.api.SkuDetails
 import com.sample.basicscodelab.repository.SubscriptionDataRepository
+import kotlinx.coroutines.flow.combine
 
-//Implement dependency injection (Hilt)
+//TODO (Implement dependency injection (Hilt))
 class UserProfileViewModel(application: Application) : AndroidViewModel(application) {
     private var repo = SubscriptionDataRepository(application)
 
-    val hasBasic: LiveData<Boolean> = repo.hasBasic
-    val hasPremium: LiveData<Boolean> = repo.hasPremium
-    val basicSkuDetails: LiveData<SkuDetails> = repo.basicSkuDetails
-    val premiumSkuDetails: LiveData<SkuDetails> = repo.premiumSkuDetails
-
-    fun retrieveSubs() {
-        repo.retrieveSubs()
+    val state = combine(
+        repo.hasBasic,
+        repo.hasPremium,
+        repo.basicSkuDetails,
+        repo.premiumSkuDetails
+    ) { hasBasic, hasPremium, basicSkuDetails, premiumSkuDetails ->
+        Log.wtf(TAG, "hasBasic: $hasBasic")
+        Log.wtf(TAG, "hasPremium: $hasPremium")
+        Log.wtf(TAG, "basicSkuDetails: $basicSkuDetails")
+        Log.wtf(TAG, "premiumSkuDetails: $premiumSkuDetails")
+        UserProfileState(
+            hasBasic = hasBasic,
+            hasPremium = hasPremium,
+            basicSkuDetails = basicSkuDetails,
+            premiumSkuDetails = premiumSkuDetails
+        )
     }
 
-    //
-    fun retrieveSkuDetails() {
-        repo.retrieveSkuDetails()
-    }
 
-    //TODO(cassigbe@ to implement a logic to call the above functions: https://scratchpad.corp.google.com/52a3a37b-8677-4a87-923c-6d0c71917cd7)
+    //TODO(cassigbe@ to implement a logic to call the above functions: See Scratchpad)
     fun isAuthenticated() {
 
     }
@@ -32,7 +37,5 @@ class UserProfileViewModel(application: Application) : AndroidViewModel(applicat
 
     companion object {
         private const val TAG: String = "UserProfileViewModel"
-        private const val basicSub: String = "up_basic_sub"
-        private const val premiumSub: String = "up_premium_sub"
     }
 }
