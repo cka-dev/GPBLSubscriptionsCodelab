@@ -14,6 +14,7 @@ class UserProfileViewModelFactory(private val application: Application): ViewMod
      * @param modelClass a `Class` whose instance is requested
      * @return a newly created ViewModel
      */
+    @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         return UserProfileViewModel(application) as T
     }
