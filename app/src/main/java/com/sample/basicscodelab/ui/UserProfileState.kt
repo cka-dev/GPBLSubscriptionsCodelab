@@ -6,5 +6,6 @@ data class UserProfileState(
     val hasBasic: Boolean = false,
     val hasPremium: Boolean = false,
     val basicSkuDetails: SkuDetails? = null,
-    val premiumSkuDetails: SkuDetails? = null
+    val premiumSkuDetails: SkuDetails? = null,
+//    val isNewPurchaseAcknowledged: Boolean = false
 )

@@ -3,9 +3,12 @@ package com.sample.basicscodelab.ui
 import android.app.Application
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
-import java.lang.Appendable
+import com.sample.basicscodelab.repository.SubscriptionDataRepository
 
-class UserProfileViewModelFactory(private val application: Application): ViewModelProvider.Factory {
+class UserProfileViewModelFactory(
+    private val application: Application,
+    private val repo: SubscriptionDataRepository
+) : ViewModelProvider.Factory {
 
 
     /**
@@ -16,6 +19,6 @@ class UserProfileViewModelFactory(private val application: Application): ViewMod
      */
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
-        return UserProfileViewModel(application) as T
+        return UserProfileViewModel(application, repo = repo) as T
     }
 }

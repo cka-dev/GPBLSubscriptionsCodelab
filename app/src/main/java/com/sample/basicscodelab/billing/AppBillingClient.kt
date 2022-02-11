@@ -4,7 +4,6 @@ import android.app.Activity
 import android.content.Context
 import android.util.Log
 import com.android.billingclient.api.AcknowledgePurchaseParams
-import com.android.billingclient.api.AcknowledgePurchaseResponseListener
 import com.android.billingclient.api.BillingClient
 import com.android.billingclient.api.BillingClientStateListener
 import com.android.billingclient.api.BillingFlowParams
@@ -14,8 +13,8 @@ import com.android.billingclient.api.PurchasesUpdatedListener
 import com.android.billingclient.api.SkuDetails
 import com.android.billingclient.api.SkuDetailsParams
 import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 
@@ -24,24 +23,31 @@ class AppBillingClient(
 ) : PurchasesUpdatedListener {
 
     private val _skusWithSkuDetails = MutableSharedFlow<Map<String, SkuDetails>>()
-    val skusWithSkuDetails: Flow<Map<String, SkuDetails>> = _skusWithSkuDetails
+    var skusWithSkuDetails: SharedFlow<Map<String, SkuDetails>> = _skusWithSkuDetails
 
     private val _purchases = MutableSharedFlow<List<Purchase>>()
-    val purchases: Flow<List<Purchase>> = _purchases
+    val purchases: SharedFlow<List<Purchase>> = _purchases
 
+    private val _isNewPurchaseAcknowledged = MutableSharedFlow<Boolean>()
+    var isNewPurchaseAcknowledged: SharedFlow<Boolean> = _isNewPurchaseAcknowledged
 
+    // Initialize the BillingClient
     private var billingClient = BillingClient.newBuilder(context)
         .setListener(this)
         .enablePendingPurchases()
         .build()
 
+    /**
+     * Establish a connection to Google Play
+     *
+     */
     fun startBillingConnection() {
         billingClient.startConnection(object : BillingClientStateListener {
             override fun onBillingSetupFinished(billingresult: BillingResult) {
                 Log.wtf(TAG, "Billing set up finished")
                 if (billingresult.responseCode == BillingClient.BillingResponseCode.OK) {
-                    // The BillingClient is ready. You can query purchases here
                     Log.wtf(TAG, "Billing response OK")
+                    // The BillingClient is ready. You can query purchases and sku details here
                     queryPurchases()
                     querySkuDetails()
                 } else {
@@ -51,7 +57,7 @@ class AppBillingClient(
 
             override fun onBillingServiceDisconnected() {
                 Log.e(TAG, "Billing connection disconnected")
-                TODO("cassigbe to implement connection reload")
+                startBillingConnection()
             }
         })
     }
@@ -77,17 +83,18 @@ class AppBillingClient(
                 }
             }
         }
-
     }
 
+    /**
+     * Query Google Play Billing for products available to sell
+     * and present them in the UI
+     */
     fun querySkuDetails() {
         val skuList = ArrayList<String>()
-        skuList.add("up_basic_sub")
-        skuList.add("up_premium_sub")
+        skuList.add(BASIC_SUB)
+        skuList.add(PREMIUM_SUB)
         val params = SkuDetailsParams.newBuilder()
         params.setSkusList(skuList).setType(BillingClient.SkuType.SUBS)
-
-        // leverage querySkuDetails Kotlin extension function
 
         billingClient.querySkuDetailsAsync(
             params.build()
@@ -111,6 +118,8 @@ class AppBillingClient(
                         val newMap = skuDetailsList.associateBy {
                             it.sku
                         }
+                        Log.wtf(TAG, "newMap: $newMap")
+
                         GlobalScope.launch {
                             _skusWithSkuDetails.emit(newMap)
                             Log.wtf(
@@ -122,6 +131,7 @@ class AppBillingClient(
                 }
                 BillingClient.BillingResponseCode.ERROR -> {
                     Log.e(TAG, "onSkuDetailsResponse: $responseCode $debugMessage")
+
                 }
                 BillingClient.BillingResponseCode.ITEM_NOT_OWNED -> {
                     // These response codes are not expected.
@@ -131,24 +141,29 @@ class AppBillingClient(
         }
     }
 
-
-    fun launchBillingFlow(activity: Activity, params: BillingFlowParams): Int {
+    /**
+     * Launch Purchase flow
+     */
+    fun launchBillingFlow(activity: Activity, params: BillingFlowParams) {
         Log.wtf(TAG, "In launchBillingFlow")
         if (!billingClient.isReady) {
             Log.e(TAG, "launchBillingFlow: BillingClient is not ready")
         }
-        val billingResult = billingClient.launchBillingFlow(activity, params)
-        val responseCode = billingResult.responseCode
-        val debugMessage = billingResult.debugMessage
-        Log.d(TAG, "launchBillingFlow: BillingResponse $responseCode $debugMessage")
-        return responseCode
+        billingClient.launchBillingFlow(activity, params)
+
     }
 
+    /**
+     * PurchasesUpdatedListener that helps handle purchases returned from the API
+     */
     override fun onPurchasesUpdated(
         billingResult: BillingResult,
         purchases: MutableList<Purchase>?
     ) {
-        if (billingResult.responseCode == BillingClient.BillingResponseCode.OK && purchases != null) {
+        if (billingResult.responseCode == BillingClient.BillingResponseCode.OK
+            && purchases != null
+        ) {
+            // Handle the purchases
             for (purchase in purchases) {
                 acknowledgePurchases(purchase)
             }
@@ -168,20 +183,23 @@ class AppBillingClient(
                     .build()
 
                 billingClient.acknowledgePurchase(
-                    params,
-                    object : AcknowledgePurchaseResponseListener {
-                        override fun onAcknowledgePurchaseResponse(p0: BillingResult) {
-                            TODO("Not yet implemented")
+                    params
+                ) { billingResult ->
+                    if (billingResult.responseCode == BillingClient.BillingResponseCode.OK
+                        && purchase.purchaseState == Purchase.PurchaseState.PURCHASED
+                    ) {
+                        GlobalScope.launch {
+                            _isNewPurchaseAcknowledged.emit(true)
                         }
-                    })
+                    }
+                }
             }
         }
     }
 
     companion object {
         private const val TAG: String = "BillingClient"
-        private val LIST_OF_SKUS = listOf("up_basic_sub", "up_premium_sub")
-        private const val basicSub: String = "up_basic_sub"
-        private const val premiumSub: String = "up_premium_sub"
+        private const val BASIC_SUB: String = "up_basic_sub"
+        private const val PREMIUM_SUB: String = "up_premium_sub"
     }
 }

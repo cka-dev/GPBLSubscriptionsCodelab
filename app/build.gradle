@@ -13,8 +13,8 @@ android {
         applicationId "com.sample.basicscodelab"
         minSdk 26
         targetSdk 31
-        versionCode 1
-        versionName "1.0"
+        versionCode 2
+        versionName "2.0"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -86,11 +86,6 @@ dependencies {
     // Also declare the dependency for the Google Play services library and specify its version
     implementation 'com.google.android.gms:play-services-auth:20.0.1'
 
-
-    // Google Play Billing Library
-
-    implementation("com.android.billingclient:billing:$billing_version")
-
     implementation "com.jakewharton:butterknife:10.2.3"
     kapt "com.jakewharton:butterknife-compiler:10.2.3"
 
@@ -103,6 +98,13 @@ dependencies {
 
     //Coroutines
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.0"
+
+
+    // Google Play Billing Library
+
+    implementation "com.android.billingclient:billing:$billing_version"
+
+
 }
 
 apply plugin: 'com.google.gms.google-services'  // Google Services plugin

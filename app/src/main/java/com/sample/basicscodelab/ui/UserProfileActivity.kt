@@ -1,5 +1,6 @@
 package com.sample.basicscodelab.ui
 
+import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.compose.setContent
@@ -25,36 +26,42 @@ import com.sample.basicscodelab.billing.AppBillingClient
 import com.sample.basicscodelab.repository.SubscriptionDataRepository
 import com.sample.basicscodelab.ui.theme.BasicsCodelabTheme
 
+
 class UserProfileActivity : AppCompatActivity() {
     private lateinit var appBillingClient: AppBillingClient
     private lateinit var repo: SubscriptionDataRepository
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        appBillingClient = AppBillingClient(this)
+        appBillingClient.startBillingConnection()
+        repo = SubscriptionDataRepository(appBillingClient = appBillingClient)
         val viewModel =
             ViewModelProvider(
                 this,
-                UserProfileViewModelFactory(application)
+                UserProfileViewModelFactory(application, repo = repo)
             )[UserProfileViewModel::class.java]
-        repo = SubscriptionDataRepository(this)
-        appBillingClient = AppBillingClient(this)
-        appBillingClient.startBillingConnection()
-
         setContent {
             BasicsCodelabTheme {
                 val state by viewModel.state.collectAsState(initial = UserProfileState())
                 when {
-                    state.hasBasic -> BasicUserProfile()
                     state.hasPremium -> PremiumUserProfile()
-                    else -> Subscription(state)
+                    state.hasBasic -> BasicUserProfile()
+                    else -> Subscription(state, appBillingClient)
+                }
+                val isNewPurchaseAcknowledgedState by viewModel.isisNewPurchaseAcknowledgedState.collectAsState(
+                    initial = false
+                )
+                when {
+                    isNewPurchaseAcknowledgedState -> reloadActivity()
                 }
             }
         }
     }
 
     @Composable
-    private fun Subscription(state: UserProfileState) {
-
+    private fun Subscription(state: UserProfileState, appBillingClient: AppBillingClient) {
+        appBillingClient.querySkuDetails()
         Surface {
 
             Column(
@@ -65,6 +72,7 @@ class UserProfileActivity : AppCompatActivity() {
                 Button(onClick = {
                     Log.wtf(TAG, "Basic button clicked")
                     Log.wtf(TAG, "basicSkuDetails: ${state.basicSkuDetails}")
+
                     if (state.basicSkuDetails == null) {
                         Log.wtf(TAG, "basicSkuDetails is null")
                     } else {
@@ -81,21 +89,24 @@ class UserProfileActivity : AppCompatActivity() {
                 }) {
                     Text(text = "Basic Subscription")
                 }
-//                Button(onClick = {
-//                    Log.wtf(TAG, "Premium button clicked")
-//                    val billingParams =
-//                        premiumSkuDetails?.let { BillingFlowParams.newBuilder().setSkuDetails(it).build() }
-//
-//                    if (billingParams != null) {
-//                        appBillingClient.launchBillingFlow(
-//                            this@UserProfileActivity,
-//                            billingParams
-//                        )
-//                    }
-//
-//                }) {
-//                    Text(text = "Premium Subscription")
-//                }
+                Button(onClick = {
+                    Log.wtf(TAG, "Premium button clicked")
+                    Log.wtf(TAG, "basicSkuDetails: ${state.premiumSkuDetails}")
+                    val billingParams =
+                        state.premiumSkuDetails?.let {
+                            BillingFlowParams.newBuilder().setSkuDetails(it).build()
+                        }
+
+                    if (billingParams != null) {
+                        appBillingClient.launchBillingFlow(
+                            this@UserProfileActivity,
+                            billingParams
+                        )
+                    }
+
+                }) {
+                    Text(text = "Premium Subscription")
+                }
             }
         }
     }
@@ -104,21 +115,21 @@ class UserProfileActivity : AppCompatActivity() {
     @Composable
     fun SubscriptionPreview() {
         BasicsCodelabTheme {
-            Subscription(state = UserProfileState())
+            Subscription(state = UserProfileState(), appBillingClient)
         }
     }
 
     @Composable
     private fun BasicUserProfile() {
-        Surface() {
+        Log.wtf(TAG, "Loading Basic Profile")
+        Surface {
             Row(
                 modifier = Modifier.fillMaxSize(),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.Center
             ) {
-                Column() {
-                    Text(text = "Your basic profile email is:")
-                    Text(text = "")
+                Column {
+                    Text(text = "This is your basic profile")
                 }
             }
         }
@@ -134,15 +145,15 @@ class UserProfileActivity : AppCompatActivity() {
 
     @Composable
     private fun PremiumUserProfile() {
-        Surface() {
+        Log.wtf(TAG, "Loading Premium Profile")
+        Surface {
             Row(
                 modifier = Modifier.padding(24.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.Center
             ) {
-                Column() {
-                    Text(text = "Your premium profile email is: ")
-                    Text(text = "")
+                Column {
+                    Text(text = "This is your premium profile")
                 }
             }
         }
@@ -156,11 +167,16 @@ class UserProfileActivity : AppCompatActivity() {
         }
     }
 
+    private fun reloadActivity() {
+        val intent: Intent = intent
+        finish()
+        startActivity(intent)
+    }
+
     companion object {
         private const val TAG: String = "UserProfileActivity"
-        private const val BASICSUB: String = "up_basic_sub"
-        private const val PREMIUMSUB: String = "up_premium_sub"
     }
+
 }
 
 

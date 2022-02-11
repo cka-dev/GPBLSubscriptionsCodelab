@@ -26,19 +26,15 @@ import androidx.compose.ui.unit.dp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.ktx.Firebase
-import com.sample.basicscodelab.repository.SubscriptionDataRepository
 import com.sample.basicscodelab.ui.UserProfileActivity
 import com.sample.basicscodelab.ui.theme.BasicsCodelabTheme
 
 class MainActivity : ComponentActivity() {
     private lateinit var auth: FirebaseAuth
 
-    private lateinit var repo: SubscriptionDataRepository
-
     override fun onCreate(savedInstanceState: Bundle?) {
         // Initialize Firebase Auth
         super.onCreate(savedInstanceState)
-        repo = SubscriptionDataRepository(this)
         auth = Firebase.auth
         setContent {
             BasicsCodelabTheme {
@@ -53,7 +49,6 @@ class MainActivity : ComponentActivity() {
         val currentUser = auth.currentUser
         if (currentUser != null) {
             Log.w(TAG, "Current user is null")
-//            reload();
         }
     }
 
@@ -78,7 +73,7 @@ class MainActivity : ComponentActivity() {
                 verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text(text = "Welcome to the the new Subscription Platform!")
+                Text(text = "Welcome to the Google Play Subscription Codelab!")
                 Button(
                     modifier = Modifier.padding(vertical = 24.dp),
                     onClick = onContinueClicked
@@ -89,14 +84,6 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-//@Composable
-//private fun Greetings(names: List<String> = List(100) { "$it" }) {
-//    LazyColumn(modifier = Modifier.padding(vertical = 4.dp)) {
-//        items(items = names) { name ->
-//            Greeting(name = name)
-//        }
-//    }
-//}
 
     @Composable
     private fun RegisterOrSignIn() {
@@ -152,7 +139,7 @@ class MainActivity : ComponentActivity() {
 
     @Composable
     fun RegistrationForm() {
-        Surface() {
+        Surface {
             Column(
                 modifier = Modifier.fillMaxSize(),
                 verticalArrangement = Arrangement.Center,
@@ -214,12 +201,12 @@ class MainActivity : ComponentActivity() {
 
     private fun createAccount(email: String, password: String) {
         // [START create_user_with_email]
-        auth.createUserWithEmailAndPassword(email, password)
+        auth.createUserWithEmailAndPassword(email.trim(), password.trim())
             .addOnCompleteListener(this) { task ->
                 if (task.isSuccessful) {
                     // Sign in success, update UI with the signed-in user's information
                     Log.d(TAG, "createUserWithEmail:success")
-                    val user = auth.currentUser
+                    signIn(email = email.trim(), password = password.trim())
                 } else {
                     // If sign in fails, display a message to the user.
                     Log.w(TAG, "createUserWithEmail:failure", task.exception)
@@ -260,54 +247,3 @@ class MainActivity : ComponentActivity() {
 
 }
 
-
-//@Composable
-//fun Greeting(name: String) {
-//    val expanded = remember {
-//        mutableStateOf(value = false)
-//    }
-//    val extraPadding by animateDpAsState(
-//        if (expanded.value) 48.dp else 0.dp,
-//        animationSpec = spring(
-//            dampingRatio = Spring.DampingRatioMediumBouncy,
-//            stiffness = Spring.StiffnessLow
-//        )
-//    )
-//
-//    Surface(
-//        color = MaterialTheme.colors.primary,
-//        modifier = Modifier.padding(vertical = 4.dp, horizontal = 4.dp)
-//    ) {
-//        Row(modifier = Modifier.padding(24.dp)) {
-//            Column(
-//                modifier = Modifier
-//                    .weight(1f)
-//                    .padding(bottom = extraPadding.coerceAtLeast(0.dp))
-//            ) {
-//                Text(text = "Hello, ")
-//                Text(text = name, style = MaterialTheme.typography.h4)
-//            }
-//            IconButton(onClick = { expanded.value = !expanded.value }) {
-//                Icon(
-//                    imageVector = if (expanded.value) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
-//                    contentDescription = if (expanded.value) {
-//                        stringResource(id = R.string.show_less)
-//                    } else {
-//                        stringResource(id = R.string.show_more)
-//                    }
-//                )
-//
-//            }
-//
-//        }
-//
-//    }
-//}
-
-//@Preview(showBackground = true, name = "Default preview")
-//@Composable
-//fun DefaultPreview() {
-//    BasicsCodelabTheme {
-//        Greetings()
-//    }
-//}
