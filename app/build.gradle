@@ -101,7 +101,6 @@ dependencies {
 
 
     // Google Play Billing Library
-
     implementation "com.android.billingclient:billing:$billing_version"
 
 
